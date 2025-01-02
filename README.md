@@ -8,7 +8,7 @@ In short, the addon automatically creates a three-point lighting shot of the sel
 
 Each paramater works as follows:
 - **Item:** the object you want to generate an icon from. Only objects that can hold material data are shown.
-- **Rotation:** the 3D rotation of the object in the 3D space. Camera, framing and lights get re-arranged automatically to ensured an adjusted shot.
+- **Rotation:** the 3D rotation of the object in the 3D space. Camera, framing and lights get re-arranged automatically to ensure an adjusted shot.
 - **Scale:** the 2D scale of the object in the camera view space. Use to fine tune the size of the object in the shot. Lights get resized accordingly.
 - **Offset:** the 2D positional offset of the object in the camera view space. Use to fine tune the location of the object in the shot. Lights get re-positioned accordingly.
 - **Resolution:** the resoltion of the output file. The camera gets re-positioned accordingly.
