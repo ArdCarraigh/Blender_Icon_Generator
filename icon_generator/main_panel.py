@@ -56,7 +56,7 @@ class RenderIcon(Operator):
         fov = 0
         if wm.Type == 'PERSP':
             fov = wm.FOV
-        render_icon(context, wm.FocusItem, wm.Scale, wm.Rotation, wm.Offset, 
+        render_icon(context, wm.FocusItem, wm.Rotation, wm.Scale, wm.Offset, 
                     wm.Resolution, wm.Type, fov, 
                     wm.KeyLight, wm.FillLight, wm.BackLight,  
                     wm.OutputFile, wm.FileFormat, dds_dxgi)
@@ -78,6 +78,8 @@ class IconGeneratorMainPanel(bpy.types.Panel):
         box_row = box.row()
         box_row.enabled = not wm.PreviewBool
         box_row.prop(wm, "FocusItem", text = 'Item')
+        if wm.FocusItem and (wm.FocusItem.users == 0 or len(wm.FocusItem.users_scene) == 0):
+            wm.FocusItem = None
         box_row = box.row()
         col = box_row.column()
         col.prop(wm, "Rotation", text = 'Rotation')
@@ -152,7 +154,7 @@ class IconGeneratorMainPanel(bpy.types.Panel):
         return
     
 def isObjectSelectable(self, object):
-    return hasattr(object.data, "materials")
+    return (hasattr(object.data, "materials") and object.users != 0 and len(object.users_scene) != 0)
 
 def updatePreviewBool(self, context):
     if self.PreviewBool:

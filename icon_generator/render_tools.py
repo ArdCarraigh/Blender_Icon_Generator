@@ -6,7 +6,7 @@ import os
 import numpy as np
 from math import atan, sqrt, tan
         
-def render_icon(context, object, scale = (1,1,1), rotation = (0,0,0), offset = (0,0,0), 
+def render_icon(context, object, rotation = (0,0,0), scale = (1,1,1), offset = (0,0,0), 
                 resolution = (64,64), type = 'ORTHO', fov = 0, 
                 key_power = 10, fill_power = 5, back_power = 5, 
                 output = "/tmp/tmp.png", format = 'PNG', dxgi = None):
