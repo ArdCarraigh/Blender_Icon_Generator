@@ -3,6 +3,7 @@
 
 import bpy
 import os
+from glob import glob
 import numpy as np
 from math import atan, sqrt, tan
         
@@ -73,7 +74,9 @@ def render_icon(context, object, rotation = (0,0,0), scale = (1,1,1), offset = (
         os.makedirs(dir_name)
                      
     # Compositing
-    render_node = nodes['Render Layers']
+    for nod in nodes:
+        nodes.remove(nod)
+    render_node = nodes.new('CompositorNodeRLayers')
     render_node.scene = temp_scene
     render_node.layer = view_layer.name
     file_output = nodes.new('CompositorNodeOutputFile')
@@ -142,9 +145,9 @@ def render_icon(context, object, rotation = (0,0,0), scale = (1,1,1), offset = (
     # Rename File
     match format:
         case 'PNG':
-             old_path = output + "0001." + "png"
+             old_path = glob(output+"[0-9]*.png")[0]
         case 'TARGA':
-             old_path = output + "0001." + "tga"
+             old_path = glob(output+"[0-9]*.tga")[0]
     try:
         os.rename(old_path, output)
     except FileExistsError:
