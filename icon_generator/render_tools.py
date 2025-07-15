@@ -9,7 +9,8 @@ from math import atan, sqrt, tan
         
 def render_icon(context, object, rotation = (0,0,0), scale = (1,1,1), offset = (0,0,0), 
                 resolution = (64,64), type = 'ORTHO', fov = 0, 
-                key_power = 10, fill_power = 5, back_power = 5, 
+                side = 'RIGHT', key_power = 10, fill_power = 5, back_power = 5, 
+                shadow_catch = False, depth = 0,
                 output = "/tmp/tmp.png", format = 'PNG', dxgi = None):
     
     wm = context.window_manager.icon_generator 
@@ -87,7 +88,7 @@ def render_icon(context, object, rotation = (0,0,0), scale = (1,1,1), offset = (
               
     # Set Camera
     if type == 'ORTHO':
-        bpy.ops.object.camera_add(location = (loc_x,loc_plus_y,loc_z), rotation = (np.pi*0.5, 0, 0))
+        bpy.ops.object.camera_add(location = (loc_x,min(bound_min[1] - 0.5, loc_plus_y),loc_z), rotation = (np.pi*0.5, 0, 0))
         cam = bpy.context.active_object
         cam.data.type = 'ORTHO'
         cam.data.ortho_scale = dim_max * (max(resolution) / min(resolution)) * 1.1
@@ -109,35 +110,64 @@ def render_icon(context, object, rotation = (0,0,0), scale = (1,1,1), offset = (
     loc_minus_y = bound_max[1] + dim_max
     dist_minus_y = abs(center_y - loc_minus_y)
     
-    bpy.ops.object.light_add(type='AREA', location=(loc_x + dist_plus_y, loc_plus_y, bound_max[2]),
-                            rotation=(atan(sqrt(2 * dist_plus_y ** 2) / (bound_max[2] - loc_z)), 0, deg_45))
+    if side == 'RIGHT':
+        bpy.ops.object.light_add(type='AREA', location=(loc_x + dist_plus_y, loc_plus_y, bound_max[2]),
+                                rotation=(atan(sqrt(2 * dist_plus_y ** 2) / (bound_max[2] - loc_z)), 0, deg_45))
+    elif side == 'LEFT':
+        bpy.ops.object.light_add(type='AREA', location=(loc_x - dist_plus_y, loc_plus_y, bound_max[2]),
+                                rotation=(atan(sqrt(2 * dist_plus_y ** 2) / (bound_max[2] - loc_z)), 0, -deg_45))
     key_light = bpy.context.active_object
     key_light.scale = (dim_x*1.5, dim_z*1.5, 1)
+    key_light.data.normalize = False
     key_light.data.energy = key_power
     key_light.scale[0] *= scale[0]
     key_light.scale[1] *= scale[1]
     key_light.location[0] += offset[0]
     key_light.location[2] += offset[1]
     
-    bpy.ops.object.light_add(type='AREA', location=(loc_x - dist_plus_y, loc_plus_y, loc_z),
-                            rotation=(deg_90, 0, -deg_45))
+    if side == 'RIGHT':
+        bpy.ops.object.light_add(type='AREA', location=(loc_x - dist_plus_y, loc_plus_y, loc_z),
+                                rotation=(deg_90, 0, -deg_45))
+    elif side == 'LEFT':
+        bpy.ops.object.light_add(type='AREA', location=(loc_x + dist_plus_y, loc_plus_y, loc_z),
+                                rotation=(deg_90, 0, deg_45))
     fill_light = bpy.context.active_object
     fill_light.scale = (dim_x*1.5, dim_z*1.5, 1)
+    fill_light.data.normalize = False
     fill_light.data.energy = fill_power
     fill_light.scale[0] *= scale[0]
     fill_light.scale[1] *= scale[1]
     fill_light.location[0] += offset[0]
     fill_light.location[2] += offset[1]
     
-    bpy.ops.object.light_add(type='AREA', location=(loc_x - dist_minus_y, loc_minus_y, loc_z),
-                            rotation=(deg_90, 0, -deg_45*3))
+    if side == 'RIGHT':
+        bpy.ops.object.light_add(type='AREA', location=(loc_x - dist_minus_y, loc_minus_y, loc_z),
+                                rotation=(deg_90, 0, -deg_45*3))
+    elif side == 'LEFT':
+        bpy.ops.object.light_add(type='AREA', location=(loc_x + dist_minus_y, loc_minus_y, loc_z),
+                                rotation=(deg_90, 0, deg_45*3))
     back_light = bpy.context.active_object
     back_light.scale = (dim_x*1.5, dim_z*1.5, 1)
+    back_light.data.normalize = False
     back_light.data.energy = back_power
     back_light.scale[0] *= scale[0]
     back_light.scale[1] *= scale[1]
     back_light.location[0] += offset[0]
     back_light.location[2] += offset[1]
+    
+    # Shadow Catcher
+    if shadow_catch:
+        loc_y_shadow_catcher = bound_max[1]
+        bpy.ops.mesh.primitive_plane_add(size=dim_max*4, enter_editmode=False, align='WORLD', 
+                                        location=(loc_x + offset[0], loc_y_shadow_catcher + depth, loc_z + offset[1]), 
+                                        rotation=(np.pi*0.5, 0, 0))
+        shadow_catcher = bpy.context.active_object
+        shadow_catcher.scale[0] = scale[0]
+        shadow_catcher.scale[1] = scale[1]
+        shadow_catcher.name = "ShadowCatcherTemp_Icon"
+        with bpy.data.libraries.load(os.path.dirname(__file__) + "/shadow_catcher_material.blend", link = False) as (data_from, data_to):
+            data_to.materials = data_from.materials
+        shadow_catcher.data.materials.append(bpy.data.materials["ShadowCatcherMaterial"]) 
                         
     # Render
     bpy.ops.render.render(scene = temp_scene.name)
@@ -169,6 +199,8 @@ def render_icon(context, object, rotation = (0,0,0), scale = (1,1,1), offset = (
     bpy.data.objects.remove(fill_light)
     bpy.data.objects.remove(back_light)
     bpy.data.objects.remove(cam)
+    if shadow_catch:
+            bpy.data.objects.remove(shadow_catcher)  
     bpy.data.scenes.remove(temp_scene)
   
     # Purge orphan data left unused

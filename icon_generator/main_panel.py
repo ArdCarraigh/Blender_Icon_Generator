@@ -7,18 +7,13 @@ from bpy.types import Operator
 from icon_generator.render_tools import render_icon
 import numpy as np
 from math import atan, sqrt, tan
+import os
 
 class PreviewIcon(Operator):
     """Preview Icon"""
     bl_idname = "icon_generator.preview_icon"
     bl_label = "Preview Icon"
     bl_options = {'REGISTER', 'UNDO'}
-    
-    def __init__(self):
-        print("Start")
-
-    def __del__(self):
-        print("End")
 
     def execute(self, context):
         return {'FINISHED'}
@@ -58,7 +53,8 @@ class RenderIcon(Operator):
             fov = wm.FOV
         render_icon(context, wm.FocusItem, wm.Rotation, wm.Scale, wm.Offset, 
                     wm.Resolution, wm.Type, fov, 
-                    wm.KeyLight, wm.FillLight, wm.BackLight,  
+                    wm.Side, wm.KeyLight, wm.FillLight, wm.BackLight,
+                    wm.ShadowCatcher, wm.Depth, 
                     wm.OutputFile, wm.FileFormat, dds_dxgi)
         return {'FINISHED'}
 
@@ -106,11 +102,21 @@ class IconGeneratorMainPanel(bpy.types.Panel):
         box = row.box()
         box.label(text="Lighting", icon='OUTLINER_OB_LIGHT')
         box_row = box.row()
+        box_row.prop(wm, "Side", text = 'Side')
+        box_row = box.row()
         box_row.prop(wm, "KeyLight", text = 'Key Light')
         box_row = box.row()
         box_row.prop(wm, "FillLight", text = 'Fill Light')
         box_row = box.row()
         box_row.prop(wm, "BackLight", text = 'Back Light')
+        
+        row = layout.row()
+        box = row.box()
+        box.label(text="Shadow Catcher", icon='GHOST_DISABLED')
+        box_row = box.row()
+        box_row.prop(wm, "ShadowCatcher", text = 'Enable')
+        box_row = box.row()
+        box_row.prop(wm, "Depth", text = 'Depth')
         
         row = layout.row()
         box = row.box()
@@ -203,7 +209,7 @@ def updatePreviewBool(self, context):
                 
         # Set Camera
         if self.Type == 'ORTHO':
-            bpy.ops.object.camera_add(location = (loc_x,loc_plus_y,loc_z), rotation = (np.pi*0.5, 0, 0))
+            bpy.ops.object.camera_add(location = (loc_x,min(bound_min[1] - 0.5, loc_plus_y),loc_z), rotation = (np.pi*0.5, 0, 0))
             cam = context.active_object
             cam.data.type = 'ORTHO'
             cam.data.ortho_scale = dim_max * (max(self.Resolution) / min(self.Resolution)) * 1.1
@@ -226,10 +232,15 @@ def updatePreviewBool(self, context):
         loc_minus_y = bound_max[1] + dim_max
         dist_minus_y = abs(center_y - loc_minus_y)
         
-        bpy.ops.object.light_add(type='AREA', location=(loc_x + dist_plus_y, loc_plus_y, bound_max[2]),
-                                rotation=(atan(sqrt(2 * dist_plus_y ** 2) / (bound_max[2] - loc_z)), 0, deg_45))
+        if self.Side == 'RIGHT':
+            bpy.ops.object.light_add(type='AREA', location=(loc_x + dist_plus_y, loc_plus_y, bound_max[2]),
+                                    rotation=(atan(sqrt(2 * dist_plus_y ** 2) / (bound_max[2] - loc_z)), 0, deg_45))
+        elif self.Side == 'LEFT':
+            bpy.ops.object.light_add(type='AREA', location=(loc_x - dist_plus_y, loc_plus_y, bound_max[2]),
+                                    rotation=(atan(sqrt(2 * dist_plus_y ** 2) / (bound_max[2] - loc_z)), 0, -deg_45))
         key_light = context.active_object
         key_light.scale = (dim_x*1.5, dim_z*1.5, 1)
+        key_light.data.normalize = False
         key_light.data.energy = self.KeyLight
         key_light.name = "KeyLightTemp_Icon"
         self.KeyLight_BaseScale[0] = key_light.scale[0]
@@ -241,10 +252,15 @@ def updatePreviewBool(self, context):
         key_light.location[0] += self.Offset[0]
         key_light.location[2] += self.Offset[1]
         
-        bpy.ops.object.light_add(type='AREA', location=(loc_x - dist_plus_y, loc_plus_y, loc_z),
-                                rotation=(deg_90, 0, -deg_45))
+        if self.Side == 'RIGHT':
+            bpy.ops.object.light_add(type='AREA', location=(loc_x - dist_plus_y, loc_plus_y, loc_z),
+                                    rotation=(deg_90, 0, -deg_45))
+        elif self.Side == 'LEFT':
+            bpy.ops.object.light_add(type='AREA', location=(loc_x + dist_plus_y, loc_plus_y, loc_z),
+                                    rotation=(deg_90, 0, deg_45))
         fill_light = context.active_object
         fill_light.scale = (dim_x*1.5, dim_z*1.5, 1)
+        fill_light.data.normalize = False
         fill_light.data.energy = self.FillLight
         fill_light.name = "FillLightTemp_Icon"
         self.FillLight_BaseScale[0] = fill_light.scale[0]
@@ -256,10 +272,15 @@ def updatePreviewBool(self, context):
         fill_light.location[0] += self.Offset[0]
         fill_light.location[2] += self.Offset[1]
         
-        bpy.ops.object.light_add(type='AREA', location=(loc_x - dist_minus_y, loc_minus_y, loc_z),
-                                rotation=(deg_90, 0, -deg_45*3))
+        if self.Side == 'RIGHT':
+            bpy.ops.object.light_add(type='AREA', location=(loc_x - dist_minus_y, loc_minus_y, loc_z),
+                                    rotation=(deg_90, 0, -deg_45*3))
+        elif self.Side == 'LEFT':
+            bpy.ops.object.light_add(type='AREA', location=(loc_x + dist_minus_y, loc_minus_y, loc_z),
+                                    rotation=(deg_90, 0, deg_45*3))
         back_light = context.active_object
         back_light.scale = (dim_x*1.5, dim_z*1.5, 1)
+        back_light.data.normalize = False
         back_light.data.energy = self.BackLight
         back_light.name = "BackLightTemp_Icon"
         self.BackLight_BaseScale[0] = back_light.scale[0]
@@ -270,6 +291,21 @@ def updatePreviewBool(self, context):
         back_light.scale[1] *= self.Scale[1]
         back_light.location[0] += self.Offset[0]
         back_light.location[2] += self.Offset[1]
+        
+        # Shadow Catcher
+        if self.ShadowCatcher:
+            loc_y_shadow_catcher = bound_max[1]
+            self.ShadowCatcher_BaseLocation = (loc_x, loc_y_shadow_catcher, loc_z)
+            bpy.ops.mesh.primitive_plane_add(size=dim_max*4, enter_editmode=False, align='WORLD', 
+                                            location=(loc_x + self.Offset[0], loc_y_shadow_catcher + self.Depth, loc_z + self.Offset[1]), 
+                                            rotation=(np.pi*0.5, 0, 0))
+            shadow_catcher = bpy.context.active_object
+            shadow_catcher.scale[0] = self.Scale[0]
+            shadow_catcher.scale[1] = self.Scale[1]
+            shadow_catcher.name = "ShadowCatcherTemp_Icon"
+            with bpy.data.libraries.load(os.path.dirname(__file__) + "/shadow_catcher_material.blend", link = False) as (data_from, data_to):
+                data_to.materials = data_from.materials
+            shadow_catcher.data.materials.append(bpy.data.materials["ShadowCatcherMaterial"]) 
         
         context.view_layer.objects.active = None
         bpy.ops.object.select_all(action='DESELECT')
@@ -288,6 +324,8 @@ def updatePreviewBool(self, context):
         bpy.data.objects.remove(bpy.data.objects["FillLightTemp_Icon"])
         bpy.data.objects.remove(bpy.data.objects["BackLightTemp_Icon"])
         bpy.data.objects.remove(bpy.data.objects["CameraTemp_Icon"])
+        if self.ShadowCatcher:
+            bpy.data.objects.remove(bpy.data.objects["ShadowCatcherTemp_Icon"])  
         bpy.data.scenes.remove(bpy.data.scenes["SceneTemp_Icon"])
       
         # Purge orphan data left unused
@@ -324,7 +362,7 @@ def updateType(self, context):
         dim_max = max(dim_z, dim_x)
         
         if self.Type == 'ORTHO':
-            loc_y = bound_min[1] - dim_max
+            loc_y = bound_min[1] - max(0.5, dim_max)
             cam.data.type = 'ORTHO'
             cam.data.ortho_scale = dim_max * (max(self.Resolution) / min(self.Resolution)) * 1.1
                 
@@ -337,7 +375,7 @@ def updateType(self, context):
         cam.location[1] = loc_y
         
 def updateFOV(self, context):
-    if self.PreviewBool:
+    if self.PreviewBool and self.Type == 'PERSP':
         cam = bpy.data.objects["CameraTemp_Icon"]
         object = bpy.data.objects["ObjectTemp_Icon"]
         bound_min = np.array(object.bound_box[0])
@@ -392,7 +430,7 @@ def updateRotation(self, context):
                 
         # Set Camera
         if self.Type == 'ORTHO':
-            cam.location = (loc_x,loc_plus_y,loc_z)
+            cam.location = (loc_x,min(bound_min[1] - 0.5, loc_plus_y),loc_z)
             cam.data.ortho_scale = dim_max * (max(self.Resolution) / min(self.Resolution)) * 1.1
                 
         elif self.Type == 'PERSP':
@@ -405,8 +443,12 @@ def updateRotation(self, context):
         loc_minus_y = bound_max[1] + dim_max
         dist_minus_y = abs(center_y - loc_minus_y)
         
-        key_light.location = (loc_x + dist_plus_y, loc_plus_y, bound_max[2])
-        key_light.rotation_euler = (atan(sqrt(2 * dist_plus_y ** 2) / (bound_max[2] - loc_z)), 0, deg_45)
+        if self.Side == 'RIGHT':
+            key_light.location = (loc_x + dist_plus_y, loc_plus_y, bound_max[2])
+            key_light.rotation_euler = (atan(sqrt(2 * dist_plus_y ** 2) / (bound_max[2] - loc_z)), 0, deg_45)
+        elif self.Side == 'LEFT':
+            key_light.location = (loc_x - dist_plus_y, loc_plus_y, bound_max[2])
+            key_light.rotation_euler = (atan(sqrt(2 * dist_plus_y ** 2) / (bound_max[2] - loc_z)), 0, -deg_45)
         key_light.scale = (dim_x*1.5, dim_z*1.5, 1)
         self.KeyLight_BaseScale[0] = key_light.scale[0]
         self.KeyLight_BaseScale[1] = key_light.scale[1]
@@ -417,7 +459,10 @@ def updateRotation(self, context):
         key_light.location[0] += self.Offset[0]
         key_light.location[2] += self.Offset[1]
         
-        fill_light.location = (loc_x - dist_plus_y, loc_plus_y, loc_z)
+        if self.Side == 'RIGHT':
+            fill_light.location = (loc_x - dist_plus_y, loc_plus_y, loc_z)
+        elif self.Side == 'LEFT':
+            fill_light.location = (loc_x + dist_plus_y, loc_plus_y, loc_z)
         fill_light.scale = (dim_x*1.5, dim_z*1.5, 1)
         self.FillLight_BaseScale[0] = fill_light.scale[0]
         self.FillLight_BaseScale[1] = fill_light.scale[1]
@@ -428,7 +473,10 @@ def updateRotation(self, context):
         fill_light.location[0] += self.Offset[0]
         fill_light.location[2] += self.Offset[1]
         
-        back_light.location = (loc_x - dist_minus_y, loc_minus_y, loc_z)
+        if self.Side == 'RIGHT':
+            back_light.location = (loc_x - dist_minus_y, loc_minus_y, loc_z)
+        elif self.Side == 'LEFT':
+            back_light.location = (loc_x + dist_minus_y, loc_minus_y, loc_z)
         back_light.scale = (dim_x*1.5, dim_z*1.5, 1)
         self.BackLight_BaseScale[0] = back_light.scale[0]
         self.BackLight_BaseScale[1] = back_light.scale[1]
@@ -438,6 +486,12 @@ def updateRotation(self, context):
         back_light.scale[1] *= self.Scale[1]
         back_light.location[0] += self.Offset[0]
         back_light.location[2] += self.Offset[1]
+        
+        if self.ShadowCatcher:
+            loc_y_shadow_catcher = bound_max[1]
+            self.ShadowCatcher_BaseLocation = (loc_x, loc_y_shadow_catcher, loc_z)
+            shadow_catcher = bpy.data.objects["ShadowCatcherTemp_Icon"]
+            shadow_catcher.location = (loc_x + self.Offset[0], loc_y_shadow_catcher + self.Depth, loc_z + self.Offset[1])
         
         context.view_layer.objects.active = None
         bpy.ops.object.select_all(action='DESELECT')
@@ -456,6 +510,11 @@ def updateScale(self, context):
         back_light = bpy.data.objects["BackLightTemp_Icon"]
         back_light.scale[0] = self.BackLight_BaseScale[0] * self.Scale[0]
         back_light.scale[1] = self.BackLight_BaseScale[1] * self.Scale[1]
+        
+        if self.ShadowCatcher:
+            shadow_catcher = bpy.data.objects["ShadowCatcherTemp_Icon"]
+            shadow_catcher.scale[0] = self.Scale[0]
+            shadow_catcher.scale[1] = self.Scale[1]
 
 def updateOffset(self, context):
     if self.PreviewBool:
@@ -471,6 +530,43 @@ def updateOffset(self, context):
         back_light = bpy.data.objects["BackLightTemp_Icon"]
         back_light.location[0] = self.BackLight_BaseLocation[0] + self.Offset[0]
         back_light.location[2] = self.BackLight_BaseLocation[1] + self.Offset[1]
+        
+        if self.ShadowCatcher:
+            shadow_catcher = bpy.data.objects["ShadowCatcherTemp_Icon"]
+            shadow_catcher.location[0] = self.ShadowCatcher_BaseLocation[0] + self.Offset[0]
+            shadow_catcher.location[2] = self.ShadowCatcher_BaseLocation[2] + self.Offset[1]
+
+def updateSide(self, context):
+    if self.PreviewBool:
+        key_light = bpy.data.objects["KeyLightTemp_Icon"]
+        fill_light = bpy.data.objects["FillLightTemp_Icon"]
+        back_light = bpy.data.objects["BackLightTemp_Icon"]
+        
+        loc_x = (key_light.location[0] + fill_light.location[0])/2
+        dist_plus_y = abs(loc_x - key_light.location[0])
+        dist_minus_y = abs(loc_x - back_light.location[0])
+        deg_45 = np.pi*0.25
+        
+        if self.Side == 'RIGHT':
+            key_light.location[0] = loc_x + dist_plus_y
+            key_light.rotation_euler[2] = deg_45
+        elif self.Side == 'LEFT':
+            key_light.location[0] = loc_x - dist_plus_y
+            key_light.rotation_euler[2] = -deg_45
+            
+        if self.Side == 'RIGHT':
+            fill_light.location[0] = loc_x - dist_plus_y
+            fill_light.rotation_euler[2] = -deg_45
+        elif self.Side == 'LEFT':
+            fill_light.location[0] = loc_x + dist_plus_y
+            fill_light.rotation_euler[2] = deg_45
+            
+        if self.Side == 'RIGHT':
+            back_light.location[0] = loc_x - dist_minus_y
+            back_light.rotation_euler[2] = -deg_45*3
+        elif self.Side == 'LEFT':
+            back_light.location[0] = loc_x + dist_minus_y
+            back_light.rotation_euler[2] = deg_45*3
             
 def updateKeyLight(self, context):
     if self.PreviewBool:
@@ -483,6 +579,37 @@ def updateFillLight(self, context):
 def updateBackLight(self, context):
     if self.PreviewBool:
         bpy.data.objects["BackLightTemp_Icon"].data.energy = self.BackLight
+        
+def updateShadowCatcher(self, context):
+    if self.PreviewBool:
+        if self.ShadowCatcher:
+            object = bpy.data.objects["ObjectTemp_Icon"]
+            bound_min = np.array(object.bound_box[0])
+            bound_max = np.array(object.bound_box[6])
+            loc_z = (bound_min[2] + bound_max[2]) / 2
+            loc_x = (bound_min[0] + bound_max[0]) / 2
+            loc_y = bound_max[1]
+            dim_z = abs(bound_max[2] - bound_min[2])
+            dim_x = abs(bound_max[0] - bound_min[0])
+            dim_max = max(dim_z, dim_x)
+            self.ShadowCatcher_BaseLocation = (loc_x, loc_y, loc_z)
+            bpy.ops.mesh.primitive_plane_add(size=dim_max*4, enter_editmode=False, align='WORLD', 
+                                            location=(loc_x + self.Offset[0], loc_y + self.Depth, loc_z + self.Offset[1]), 
+                                            rotation=(np.pi*0.5, 0, 0))
+            shadow_catcher = bpy.context.active_object
+            shadow_catcher.scale[0] = self.Scale[0]
+            shadow_catcher.scale[1] = self.Scale[1]
+            shadow_catcher.name = "ShadowCatcherTemp_Icon"
+            with bpy.data.libraries.load(os.path.dirname(__file__) + "/shadow_catcher_material.blend", link = False) as (data_from, data_to):
+                data_to.materials = data_from.materials
+            shadow_catcher.data.materials.append(bpy.data.materials["ShadowCatcherMaterial"]) 
+        else:
+            bpy.data.objects.remove(bpy.data.objects["ShadowCatcherTemp_Icon"])     
+            
+def updateDepth(self, context):
+    if self.PreviewBool and self.ShadowCatcher:
+        shadow_catcher = bpy.data.objects["ShadowCatcherTemp_Icon"]
+        shadow_catcher.location[1] = self.ShadowCatcher_BaseLocation[1] + self.Depth
             
 PROPS_Main_Panel = [
 ('FocusItem', PointerProperty(
@@ -543,6 +670,16 @@ PROPS_Main_Panel = [
         default=(0,0),
         subtype='COORDINATES',
         update=updateOffset
+    )),
+('Side', EnumProperty(
+        name="Side",
+        description="Set the side of the three-point lighting",
+        items=(
+            ('RIGHT', "Right", "Set up the three-point lighting from the right"),
+            ('LEFT', "Left", "Set up the three-point lighting from the left")
+            ),
+        default='RIGHT',
+        update=updateSide
     )),
 ('KeyLight', FloatProperty(
         name="Key Light Power",
@@ -609,6 +746,24 @@ PROPS_Main_Panel = [
         description="Set the base location of the back light",
         default=(0,0),
         size=2
+    )),
+("ShadowCatcher", BoolProperty(
+        name='Shadow Catcher',
+        description="Enable/diable shadow catcher",
+        default=False,
+        update=updateShadowCatcher
+    )),
+('Depth', FloatProperty(
+        name="Depth",
+        description="Set the depth offset of the shadow catcher",
+        default=0,
+        update=updateDepth
+    )),
+('ShadowCatcher_BaseLocation', FloatVectorProperty(
+        name="Shadow Catcher Base Location",
+        description="Set the base location of the shadow catcher",
+        size=3,
+        default=(0,0,0)
     )),
 ("OutputFile", StringProperty(
         name = "Output File",
