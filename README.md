@@ -3,7 +3,7 @@
 ## Content of the addon
 
 Versatile tool to generate icons for games or others. Fine tune while previewing in Blender and batch process with desired settings. 
-Developed for Blender 4.5.0, other versions are not tested.
+Developed for Blender 4.5.X, other versions are not tested.
 In short, the addon automatically creates a three-point lighting shot of the selected object with an adjusted framing. You can then manually fine tune the framing and lighting to your liking. When you are satisfied with a set of parameters you can use that preset for other similar assets, either manually or with a python script for batch processing with a single click. 
 
 Each paramater works as follows:
