@@ -23,12 +23,12 @@ def render_icon(context, object, rotation = (0,0,0), scale = (1,1,1), offset = (
     bpy.context.window.scene = temp_scene
     view_layer = bpy.context.view_layer
     temp_scene.render.film_transparent = True
-    temp_scene.use_nodes = True
-    ntree = temp_scene.node_tree
-    nodes = ntree.nodes
-    links = ntree.links
     temp_scene.render.resolution_x = resolution[0]
     temp_scene.render.resolution_y = resolution[1]
+    ntree = bpy.data.node_groups.new("Icon Compositor Tree", "CompositorNodeTree")
+    temp_scene.compositing_node_group = ntree
+    nodes = ntree.nodes
+    links = ntree.links
     
     # Get Bounding Box and Set Transforms
     bpy.context.view_layer.objects.active = None
@@ -75,15 +75,15 @@ def render_icon(context, object, rotation = (0,0,0), scale = (1,1,1), offset = (
         os.makedirs(dir_name)
                      
     # Compositing
-    for nod in nodes:
-        nodes.remove(nod)
     render_node = nodes.new('CompositorNodeRLayers')
     render_node.scene = temp_scene
     render_node.layer = view_layer.name
     file_output = nodes.new('CompositorNodeOutputFile')
-    file_output.base_path = dir_name
-    file_output.file_slots[0].path = file_name
+    file_output.directory = dir_name
+    file_output.file_name = file_name
+    file_output.format.media_type = 'IMAGE'
     file_output.format.file_format = format
+    file_output.file_output_items.new('RGBA', name="")
     links.new(render_node.outputs['Image'], file_output.inputs[0])
               
     # Set Camera
@@ -171,18 +171,6 @@ def render_icon(context, object, rotation = (0,0,0), scale = (1,1,1), offset = (
                         
     # Render
     bpy.ops.render.render(scene = temp_scene.name)
-    
-    # Rename File
-    match format:
-        case 'PNG':
-             old_path = glob(output+"[0-9]*.png")[0]
-        case 'TARGA':
-             old_path = glob(output+"[0-9]*.tga")[0]
-    try:
-        os.rename(old_path, output)
-    except FileExistsError:
-        os.remove(output)
-        os.rename(old_path, output)
                                  
     # Convert to DDS if requested
     if is_dds:

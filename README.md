@@ -3,7 +3,7 @@
 ## Content of the addon
 
 Versatile tool to generate icons for games or others. Fine tune while previewing in Blender and batch process with desired settings. 
-Developed for Blender 4.5.X, other versions are not tested.
+Developed for Blender 5.0.X, other versions are not tested.
 In short, the addon automatically creates a three-point lighting shot of the selected object with an adjusted framing. You can then manually fine tune the framing and lighting to your liking. When you are satisfied with a set of parameters you can use that preset for other similar assets, either manually or with a python script for batch processing with a single click. 
 
 Each paramater works as follows:
@@ -18,7 +18,7 @@ Each paramater works as follows:
 - **Key Light:** the power of the key light. It determines the shot's overall design.
 - **Fill Light:** the power of the fill light. It balances the key by illuminating shaded surfaces.
 - **Back Light:** the power of the back light. It gives the subject a rim of light, serving to separate the subject from the background and highlighting contours.
-- **Shadow Catcher:** enables or disables the shadows catcher.
+- **Shadow Catcher:** enables or disables the shadow catcher.
 - **Depth:** the depth of the shadow catcher. 0 means that the shadow catcher is right behind the asset. Positive values push the catcher further away from the camera, while negative values pull it closer.
 - **Output File:** the path in which the output file gets written. The extension gets adjusted depending on the file format.
 - **File Format:** the format of the output file. Either PNG, Targa or DDS. The extension of the output file gets adjusted depending on it.
