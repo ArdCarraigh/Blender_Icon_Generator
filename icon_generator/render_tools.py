@@ -3,7 +3,6 @@
 
 import bpy
 import os
-from glob import glob
 import numpy as np
 from math import atan, sqrt, tan
         
@@ -178,8 +177,6 @@ def render_icon(context, object, rotation = (0,0,0), scale = (1,1,1), offset = (
         texconv.convert_to_dds(file = output, dds_fmt = dxgi, out = dir_name)
         texconv.unload_dll()
         os.remove(output)
-        output = output[:-3]
-        file_name = file_name[:-3]
     
     # Clean up
     bpy.data.objects.remove(object)

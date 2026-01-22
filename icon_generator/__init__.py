@@ -4,7 +4,7 @@
 bl_info = {
     "name": "Icon Generator",
     "author": "Ard Carraigh",
-    "version": (2, 0),
+    "version": (2, 0, 1),
     "blender": (5, 0, 0),
     "location": "3D View > Side Panel > Icon Generator",
     "description": "Preview and create icons",

@@ -35,7 +35,7 @@ for subdir, dirs, files in os.walk(rootdir):
             # - the normals, 
             # - the bone pose,
             # - the animations,
-            # - or whatever else
+            # - or whatever else...
                 
             # Presets can be defined based on a pattern in the file name, the bounding box of the model or whatever else
             # l_ can define pants
@@ -47,9 +47,12 @@ for subdir, dirs, files in os.walk(rootdir):
                     'resolution': (64, 128),
                     'type': 'PERSP',
                     'fov': radians(28),
+                    'side': 'RIGHT',
                     'key_power': 50,
                     'fill_power': 15,
                     'back_power': 16,
+                    'shadow_catch': False,
+                    'depth': 0
                 }
                 
             # s_ can define shoes    
@@ -61,9 +64,12 @@ for subdir, dirs, files in os.walk(rootdir):
                     'resolution': (64, 64),
                     'type': 'PERSP',
                     'fov': radians(43),
+                    'side': 'RIGHT',
                     'key_power': 18,
                     'fill_power': 9,
                     'back_power': 3,
+                    'shadow_catch': False,
+                    'depth': 0
                 }
                 
             # Name the output file depending on the input file
@@ -77,13 +83,22 @@ for subdir, dirs, files in os.walk(rootdir):
                         offset = icon_preset['offset'], 
                         resolution = icon_preset['resolution'], 
                         type = icon_preset['type'], 
-                        fov = icon_preset['fov'], 
+                        fov = icon_preset['fov'],
+                        side = icon_preset['side'],
                         key_power = icon_preset['key_power'], 
                         fill_power = icon_preset['fill_power'], 
-                        back_power = icon_preset['back_power'], 
+                        back_power = icon_preset['back_power'],
+                        shadow_catch = icon_preset['shadow_catch'],
+                        depth = icon_preset['depth'],
                         output = icon_preset['output'], 
                         format = 'PNG', 
                         dxgi = None)
+                        
+            # Could import the produced icon into the compositor for:
+            # - color correction,
+            # - artistic effects,
+            # - projected shadows,
+            # - or whatever else...
             
             # Clean the scene before moving on to the next mesh            
             for obj in bpy.data.objects:
